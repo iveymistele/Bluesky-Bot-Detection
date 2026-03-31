@@ -1,5 +1,6 @@
-bluesky.duckdb
+*.duckdb
 *.log
 .venv
 __pycache__/
 *.parquet
+.DS_Store
