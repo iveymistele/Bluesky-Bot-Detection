@@ -172,6 +172,8 @@ erDiagram
   posts ||--|| post_features : described_by
 ```
 
+<small> Note: `post_id` is a FK referencing `id` from posts. It was renamed for clarity. </small>
+
 
 #### Data Table
 
