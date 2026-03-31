@@ -1,12 +1,12 @@
 # DS 4320 Project 1: Detecting Likely Automated Bluesky Accounts 
 
 
-**Executive Summary fix**
-This project uses short-term activity and content signals from real-time data streams from the Bluesky social media platform. 
+#### Executive Summary
+This project analyzes real-time data from the Bluesky social media platform to identify accounts that exhibit bot-like behavior. Using data collected from the Bluesky Firehose API, the repository includes a full pipeline for ingesting raw post data, engineering behavioral features, and aggregating activity at the account level. Key signals such as posting frequency, reply behavior, and content patterns (e.g., URL usage) are used to characterize accounts. The project prioritizes identifying high-confidence bot-like profiles using interpretable features and a modular data structure, while acknowledging uncertainty due to limited observation windows and the absence of ground truth labels.
 
 Ivey Mistele\
 Computing ID: zyh4up\
-DOI to do\
+DOI: [![DOI](https://zenodo.org/badge/1197549319.svg)](https://doi.org/10.5281/zenodo.19359403)\
 Press Release: [Link](https://github.com/iveymistele/Bluesky-Bot-Detection/blob/main/press_release.md)\
 Data: [Link](https://myuva-my.sharepoint.com/:f:/g/personal/zyh4up_virginia_edu/IgDohLMCAK-RRKmYPl1QViVRAel_N3mQHVozNomswaI5pbc?e=pCEpvf)\
 Pipeline: [Link](https://github.com/iveymistele/Bluesky-Bot-Detection/blob/main/pipeline/pipeline.ipynb)\
@@ -14,26 +14,25 @@ MIT License: [Link](https://github.com/iveymistele/Bluesky-Bot-Detection/blob/ma
 
 ## Problem Definition
 
-**General Problem:**  Identifying automated social media accounts (bots).
+#### General Problem:  Identifying automated social media accounts (bots).
 
-**Refined Problem Statement:** Developing a model to identify accounts on Bluesky that are likely automated (bots) using engagement patterns, posting behavior, and text features. 
+#### Refined Problem Statement:** Developing a model to identify accounts on Bluesky that are likely automated (bots) using engagement patterns, posting behavior, and text features. 
 
-**Rationale:** 
+#### Rationale: 
 
-    I chose to focus on Bluesky because it provides publicly accessible, real-time data through the firehose API, which made it feasible to collect a large and relevant dataset for analysis. Compared to other platforms with more restrictive APIs, this allowed me to work directly with live social media activity rather than relying on pre-collected datasets. I refined the problem to focus on bot detection because automated accounts often follow similarly distinct behavioral patterns. I used features that are available in the data, like posting frequency, reply behavior, and text features like hashtags and links. These features represent account interaction with the platform, which potentially differs between bots and human accounts. By focusing on existing patterns in behavior and content, the model aims to identify accounts that act in ways that are more consistent with automated activity, even without explicitly labeled training data.
+I chose to focus on Bluesky because it provides publicly accessible, real-time data through the firehose API, which made it feasible to collect a large and relevant dataset for analysis. Compared to other platforms with more restrictive APIs, this allowed me to work directly with live social media activity rather than relying on pre-collected datasets. I refined the problem to focus on bot detection because automated accounts often follow similarly distinct behavioral patterns. I used features that are available in the data, like posting frequency, reply behavior, and text features like hashtags and links. These features represent account interaction with the platform, which potentially differs between bots and human accounts. By focusing on existing patterns in behavior and content, the model aims to identify accounts that act in ways that are more consistent with automated activity, even without explicitly labeled training data.
 
-**Project Motivation:** 
+#### Project Motivation: 
  
+Bots make up a significant portion of internet traffic, and their presence on social media platforms can impact the quality and reliability of user interactions. Identifying these automated accounts is important for detecting spam, promotional content, and coordinated activity that may distort engagement metrics. Additionally, tools for identifying bot-like behavior can help platforms and businesses better understand user activity and take steps to manage or reduce the influence of automated accounts. This project aims to explore how behavioral and content-based signals can be used to detect accounts that exhibit bot-like patterns.
 
- Bots make up lots **statistic?** of internet traffic. Identifying these bots is important in not only identifying promotional or spam material on social media, but also can serve as a useful tool for businesses to use to attempt to combat the amount of automated accounts on their platofmr. can be harmful because yeahj 
-
- **Press Release: Kill the Bots in your Platform idk or for personal use report em**
+#### Press Release: New Tool Uses Real-Time Data to Identify Bot-Like Activity on Social Media Platforms
 
 [Link to Press Release](https://github.com/iveymistele/Bluesky-Bot-Detection/blob/main/press_release.md)
 
-## Domain Exposition 
+#### Domain Exposition 
 
-**Terminology**
+#### Terminology
 
 | Term | Explanation |
 |---|---|
@@ -50,7 +49,7 @@ MIT License: [Link](https://github.com/iveymistele/Bluesky-Bot-Detection/blob/ma
 |Label | Account classification (1 = likely bot, 0 = likely human, None = inconclusive). |
 |Cluster | Group assignment from unsupervised KMeans clustering. | 
 
-**Key Metrics (KPIs)**
+#### Key Metrics (KPIs)
 
 | Metric | Purpose |
 |---|---|
@@ -60,13 +59,13 @@ MIT License: [Link](https://github.com/iveymistele/Bluesky-Bot-Detection/blob/ma
 |F1 Score| Balance between precision and recall. | 
 |Feature Coefficients| Indicate which behaviors are most associated with bot-like accounts. |
 
-**Project Domain**
+#### Project Domain
 
 This project falls within the broader domain of bot detection on social media. The goal in this space is to identify accounts that are likely automated rather than human, usually based on patterns in behavior, activity, and interaction. This is important because bots can influence conversations, spread spam or misinformation, and distort engagement metrics. My project looks at this problem specifically in the context of Bluesky, using behavioral data to approximate which accounts might be bot-like.
 
-**Background Readings:** [Link](https://myuva-my.sharepoint.com/:f:/g/personal/zyh4up_virginia_edu/IgDtRN1JEgtmSqAeFWx2VAQ-AYCNCmTYpc_DqgbPrcGhEyI?e=NX7sbn)
+#### Background Readings: [Link](https://myuva-my.sharepoint.com/:f:/g/personal/zyh4up_virginia_edu/IgDtRN1JEgtmSqAeFWx2VAQ-AYCNCmTYpc_DqgbPrcGhEyI?e=NX7sbn)
 
-**Reading Summary**
+#### Reading Summary
 
 | Title of Article | Description | Link |
 |---|---|---|
@@ -78,11 +77,11 @@ This project falls within the broader domain of bot detection on social media. T
 
 ## Data Creation
 
-**Provenance**
+#### Provenance
 
 I collected the raw data using the publicly available Bluesky Firehose API. I wrote my own ingestion [script](https://github.com/iveymistele/Bluesky-Bot-Detection/blob/main/jetstream.py) which connects to the API and ingests and parses raw JSON into two tables, `accounts` and `posts`, saved in both a DuckDB database for initial exploration and as parquet files. These two tables represent the core entities in the dataset, where `accounts` contains unique users and `posts` contains information about individual pieces of content. I then wrote two [SQL transformations](https://github.com/iveymistele/Bluesky-Bot-Detection/blob/main/pipeline/1_create_features.sql) to create two new tables, `account_features` and `post_features`, as new derived tables. The `post_features` table contains per-post attributes such as text length and presence of URLs/hashtags, and `account_features` contains information about aggregated behavior at the account level, such as reply rate. These tables are transformatd views of the underlying data. I used a python [script](https://github.com/iveymistele/Bluesky-Bot-Detection/blob/main/pipeline/write_parquet.py) to write these two new tables from the DuckDB database to parquet format. 
 
-**Code**
+#### Code
 
 |File Name|Description|Link|
 |---|---|---|
@@ -91,19 +90,19 @@ I collected the raw data using the publicly available Bluesky Firehose API. I wr
 |write_parquet.py|Converts DuckDB database contents to parquet files.|https://github.com/iveymistele/Bluesky-Bot-Detection/blob/main/pipeline/write_parquet.py|
 |1_create_features.sql|SQL commands to create two new tables, account_features and post_features from root data.| https://github.com/iveymistele/Bluesky-Bot-Detection/blob/main/pipeline/1_create_features.sql |
 
-**Bias Identification**
+#### Bias Identification
 
 Bias may be introduced through both data collection and labeling. The data comes from a short Firehose collection window, so it may not fully represent all types of users or behaviors on Bluesky.
 
 A larger source of bias comes from the labeling process. Since there is no ground truth, I used heuristic thresholds (e.g., high activity and URL usage) to define bot-like accounts. This likely captures only the most obvious cases and may misclassify real users with similar behavior, such as organizations or highly active accounts.
 
-**Bias Mitigation**
+#### Bias Mitigation
 
 To reduce bias, I only labeled accounts with clearly extreme behavior and left others unlabeled to avoid introducing noise. I also removed features used in labeling from the model to prevent data leakage and force the model to learn from independent signals.
 
 I also evaluated performance using precision, recall, and F1 score rather than accuracy alone, and manually inspected example posts from predicted bot-like accounts to check that results were reasonable.
 
-**Rationale**
+#### Rationale
 
 Several parts of the data creation process required judgment calls around how to structure raw Bluesky data into usable features for analysis and modeling. 
 
@@ -129,7 +128,7 @@ Finally, the data creation process is dependent on a real-time Firehose ingestio
 
 ## Metadata 
 
-**ERD**
+#### ERD
 
 ```mermaid
 erDiagram
@@ -174,17 +173,17 @@ erDiagram
 ```
 
 
-**Data Table**
+#### Data Table
 
 | Table | Description | Link |
 |---|---|---|
-|account_features.parquet|Stores aggregated behavioral features at the account level, including posting frequency, reply rate, and content-based metrics used for modeling. |https://myuva-my.sharepoint.com/:u:/g/personal/zyh4up_virginia_edu/IQB0ufYXEbPXRK7aJnTgdN7kASjGbVgi00NV5lEwPX83BvI?e=wTh2Ra |
-|accounts.parquet| Stores account-level data, with one row per account (DID), including summary activity such as total posts and observed time range. |https://myuva-my.sharepoint.com/:u:/g/personal/zyh4up_virginia_edu/IQD5Zak-Ql0VSItU36WrpeUIAbxrlAw1LvsS5NNRMUPQ8Yc?e=zwMASa|
-|post_features.parquet|Stores derived features at the post level, such as text length, word count, and indicators for URLs, hashtags, and mentions. | https://myuva-my.sharepoint.com/:u:/g/personal/zyh4up_virginia_edu/IQCoIW7pEFPZTLrJcI2G5C39AQgeBd-rKViyQwAoJWA6Qgo?e=e4zOOh|
-|posts.parquet|Stores raw post-level data from the Bluesky Firehose, with one row per post including text, timestamps, and associated account IDs. |https://myuva-my.sharepoint.com/:u:/g/personal/zyh4up_virginia_edu/IQDcKjfEx_btQL3_dk4SEupBAQ2SRTg_41WI5kDmNCgu2K8?e=Iqd3EW |
+|account_features|Stores aggregated behavioral features at the account level, including posting frequency, reply rate, and content-based metrics used for modeling. |https://myuva-my.sharepoint.com/:u:/g/personal/zyh4up_virginia_edu/IQB0ufYXEbPXRK7aJnTgdN7kASjGbVgi00NV5lEwPX83BvI?e=wTh2Ra |
+|accounts| Stores account-level data, with one row per account (DID), including summary activity such as total posts and observed time range. |https://myuva-my.sharepoint.com/:u:/g/personal/zyh4up_virginia_edu/IQD5Zak-Ql0VSItU36WrpeUIAbxrlAw1LvsS5NNRMUPQ8Yc?e=zwMASa|
+|post_features|Stores derived features at the post level, such as text length, word count, and indicators for URLs, hashtags, and mentions. | https://myuva-my.sharepoint.com/:u:/g/personal/zyh4up_virginia_edu/IQCoIW7pEFPZTLrJcI2G5C39AQgeBd-rKViyQwAoJWA6Qgo?e=e4zOOh|
+|posts|Stores raw post-level data from the Bluesky Firehose, with one row per post including text, timestamps, and associated account IDs. |https://myuva-my.sharepoint.com/:u:/g/personal/zyh4up_virginia_edu/IQDcKjfEx_btQL3_dk4SEupBAQ2SRTg_41WI5kDmNCgu2K8?e=Iqd3EW |
 
 
-**Data Dictionary: `posts`**
+#### Data Dictionary: `posts`
 
 | Name        | Data Type | Description                                                                 | Example                                              |
 |------------|----------|-----------------------------------------------------------------------------|------------------------------------------------------|
@@ -197,7 +196,7 @@ erDiagram
 | raw_json   | VARCHAR | The full raw JSON event from the stream for reproducibility.               | {"did":"did:plc:...","commit":{...}}                 |
 |is_reply| BOOLEAN | Indicates whether the post is a reply to another post. | TRUE |
 
-**Data Dictionary: `accounts`**
+#### Data Dictionary: `accounts`
 
 | Name        | Data Type | Description                                                                 | Example                                              |
 |------------|----------|-----------------------------------------------------------------------------|------------------------------------------------------|
@@ -206,7 +205,7 @@ erDiagram
 |last_seen_at| TIMESTAMP| Timestamp of the most recent observed post from this account.| 2026-03-30 14:21:00|
 |post_count| BIGINT | Total number of posts observed for this account. | 57 |
 
-**Data Dictionary: `post_features`**
+#### Data Dictionary: `post_features`
 
 | Name        | Data Type | Description                                                                 | Example                                              |
 |------------|----------|-----------------------------------------------------------------------------|------------------------------------------------------|
@@ -219,7 +218,7 @@ erDiagram
 |has_mention|INTEGER|Indicator (1/0) for presence of mentions (@). | 1|
 |is_reply| BOOLEAN| Indicates whether the post is a reply. |FALSE|
 
-**Data Dictionary: `account_features`**
+#### Data Dictionary: `account_features`
 
 | Name        | Data Type | Description                                                                 | Example                                              |
 |------------|----------|-----------------------------------------------------------------------------|------------------------------------------------------|
@@ -231,15 +230,16 @@ erDiagram
 |hashtag_rate|DOUBLE|Proportion of posts containing hashtags.|0.1|
 |mention_rate|DOUBLE|Proportion of posts containing mentions.|0.25|
 
-**Quantification of Uncertainty**
+#### Quantification of Uncertainty
 
-Uncertainty in this dataset comes from approximations in feature construction and variability in the amount of data observed per account. These features should be interpreted as estimates of behavior rather than exact measurements.
+Uncertainty in this dataset comes from approximations in feature construction and differences in how much data is available per account. The values below should be interpreted as estimates of behavior, with varying levels of reliability depending on how they are computed.
 
-| Source | Description |
-|--------|-------------|
-| word_count | Estimated using spaces as delimiters, which can miscount due to punctuation, emojis, or URLs. Approximate error of ±1–2 words (~5–10%). |
-| has_url / has_hashtag / has_mention | Detected using simple text patterns (e.g., "http", "#", "@"), which can produce false positives or miss valid cases. Estimated error ~5%. |
-| Aggregated features (reply_rate, url_rate, etc.) | Based on a finite number of posts per account. Accounts with fewer posts have higher uncertainty (rates may vary significantly with small n). |
-| Sampling window | Data comes from a limited Firehose time window, so observed behavior may not reflect long-term activity. |
-
+| Feature Type | Description | Confidence |
+|-------------|-------------|------------|
+| char_count | Direct count of characters in text. This is exact given the stored data. | High |
+| word_count | Estimated using spaces as delimiters, which can miscount due to punctuation, emojis, or URLs. Approximate error of ±1–2 words (~5–10%). | Moderate |
+| has_url / has_hashtag / has_mention | Detected using simple text patterns (e.g., "http", "#", "@"), which can produce false positives or miss valid cases. Estimated error ~5%. | Moderate |
+| reply_rate, url_rate, hashtag_rate, mention_rate | Computed as averages over posts. Reliability depends on number of posts per account; small sample sizes lead to high variability (can vary by ±20–30% for low-activity accounts). | Variable (low to high with more data) |
+| avg_post_length, avg_word_count | Averages across posts; more stable than individual posts but still sensitive to small sample sizes and outliers. | Moderate/High |
+| Sampling window (all features) | Based on a limited Firehose time window, so values may not reflect long-term behavior. | Moderate |
 

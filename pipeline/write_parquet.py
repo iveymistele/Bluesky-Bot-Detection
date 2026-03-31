@@ -1,19 +1,40 @@
 import duckdb
+from datetime import datetime
 
-con = duckdb.connect('bluesky.duckdb')
+def log(message):
+    timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+    print(f"[{timestamp}] {message}")
 
-# Write to parquet using SQL
+try:
+    con = duckdb.connect('bluesky.duckdb')
+    log("Connected to DuckDB")
 
-'''
-con.execute("""
-COPY post_features 
-TO 'data/post_features.parquet' 
-(FORMAT PARQUET)
-""")
-'''
+    try:
+        con.execute("""
+        COPY post_features 
+        TO 'data/post_features.parquet' 
+        (FORMAT PARQUET)
+        """)
+        log("Exported post_features to Parquet")
+    except Exception as e:
+        log(f"Failed to export post_features: {e}")
 
-con.execute("""
-COPY account_features 
-TO 'data/account_features.parquet' 
-(FORMAT PARQUET)
-""")
+    try:
+        con.execute("""
+        COPY account_features 
+        TO 'data/account_features.parquet' 
+        (FORMAT PARQUET)
+        """)
+        log("Exported account_features to Parquet")
+    except Exception as e:
+        log(f"Failed to export account_features: {e}")
+
+except Exception as e:
+    log(f"Database connection failed: {e}")
+
+finally:
+    try:
+        con.close()
+        log("Closed DuckDB connection")
+    except:
+        pass

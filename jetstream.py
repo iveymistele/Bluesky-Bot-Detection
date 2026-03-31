@@ -6,7 +6,21 @@ from datetime import datetime
 
 uri = "wss://jetstream2.us-east.bsky.network/subscribe?wantedCollections=app.bsky.feed.post"
 
-conn = duckdb.connect("bluesky.duckdb")
+log_file = open("ingestion.log", "a", encoding="utf-8")
+
+def log(message):
+    timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+    line = f"[{timestamp}] {message}"
+    print(line)
+    log_file.write(line + "\n")
+    log_file.flush()
+
+try:
+    conn = duckdb.connect("bluesky.duckdb")
+    log("Connected to DuckDB database")
+except Exception as e:
+    log(f"Failed to connect to DuckDB: {e}")
+    raise
 
 # Reset tables for a fresh run
 conn.execute("DROP TABLE IF EXISTS posts")
@@ -36,14 +50,7 @@ CREATE TABLE posts (
 )
 """)
 
-log_file = open("ingestion.log", "a", encoding="utf-8")
 
-def log(message):
-    timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-    line = f"[{timestamp}] {message}"
-    print(line)
-    log_file.write(line + "\n")
-    log_file.flush()
 
 def safe_parse_timestamp(ts):
     if not ts:
