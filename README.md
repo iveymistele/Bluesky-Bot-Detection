@@ -107,6 +107,16 @@ I also evaluated performance using precision, recall, and F1 score rather than a
 
 Several parts of the data creation process required judgment calls around how to structure raw Bluesky data into usable features for analysis and modeling. 
 
+The dataset is organized into four tables: `posts`, `accounts`, `post_features`, and `account_features`. This separates raw data from derived features and to support a modular, reproducible pipeline. This structure allows each stage of the data creation process (ingestion, feature engineering, and aggregation) to be clearly defined and independently adjustable.
+
+The `posts` table stores the raw data collected from the Bluesky Firehose, including post text, timestamps, and metadata such as whether a post is a reply. This serves as the foundational dataset and preserves the original information without transformation. The accounts table captures ingestion-level summaries for each user, including when the account was first and last observed and the total number of posts seen during the collection window. These two tables represent the raw layer of the pipeline.
+
+The `post_features` table builds directly on posts by adding engineered features at the post level, such as character count, word count, and indicators for URLs, hashtags, and mentions. This intermediate layer isolates feature engineering logic from raw data storage, making it easier to iterate on feature definitions without modifying the underlying dataset.
+
+The `account_features` table aggregates post-level features to the account level, producing behavioral summaries such as reply rate, average post length, and rates of URL, hashtag, and mention usage. This aggregation step is designed to capture consistent patterns in user behavior, which are more informative for identifying bot-like activity than individual posts.
+
+Although both `accounts` and `account_features` are keyed by `did`, they serve different purposes. The `accounts` table stores ingestion-level account summaries, while `account_features` stores derived behavioral features used for downstream analysis. Separating these tables avoids mixing raw and computed data, improves interpretability, and allows features to be recomputed or extended without altering the original ingestion results.
+
 At the post level, I chose to engineer basic text and engagement features such as character count, word count, and indicators for URLs, hashtags, and mentions. These were selected because they are directly observable in the raw data and are commonly associated with automated behavior (e.g., bots often include links or repetitive tagging patterns). Rather than storing these as boolean values, I encoded features like `has_url`, `has_hashtag`, and `has_mention` as integer indicators (1/0). This decision was made to support future transformations and modeling workflows, since numeric representations are more flexible for aggregation (e.g., averaging to compute rates), scaling, and compatibility with machine learning models that expect numeric inputs.
 
 I also derived account-level features by aggregating post-level behavior, such as average post length, reply rate, and URL usage rate. This step reflects a shift from individual observations to behavioral summaries, which are more appropriate for identifying patterns across accounts. The aggregation design assumes that consistent behavioral tendencies (rather than single posts) are more indicative of automation.
@@ -120,6 +130,49 @@ Finally, the data creation process is dependent on a real-time Firehose ingestio
 ## Metadata 
 
 **ERD**
+
+```mermaid
+erDiagram
+  accounts {
+    VARCHAR did PK
+    TIMESTAMP first_seen_at
+    TIMESTAMP last_seen_at
+    BIGINT post_count
+  }
+  posts {
+    VARCHAR id PK
+    VARCHAR did FK
+    VARCHAR collection
+    VARCHAR rkey
+    VARCHAR text
+    TIMESTAMP created_at
+    BOOLEAN is_reply
+  }
+  post_features {
+    VARCHAR post_id FK
+    VARCHAR did FK
+    INTEGER char_count
+    INTEGER word_count
+    INTEGER has_url
+    INTEGER has_hashtag
+    INTEGER has_mention
+    BOOLEAN is_reply
+  }
+  account_features {
+    VARCHAR did PK
+    DOUBLE reply_rate
+    DOUBLE avg_post_length
+    DOUBLE avg_word_count
+    DOUBLE url_rate
+    DOUBLE hashtag_rate
+    DOUBLE mention_rate
+  }
+
+  accounts ||--o{ posts : writes
+  accounts ||--o| account_features : summarized_in
+  posts ||--|| post_features : described_by
+```
+
 
 **Data Table**
 
@@ -177,3 +230,16 @@ Finally, the data creation process is dependent on a real-time Firehose ingestio
 |url_rate|DOUBLE|Proportion of posts containing URLs.|0.4|
 |hashtag_rate|DOUBLE|Proportion of posts containing hashtags.|0.1|
 |mention_rate|DOUBLE|Proportion of posts containing mentions.|0.25|
+
+**Quantification of Uncertainty**
+
+Uncertainty in this dataset comes from approximations in feature construction and variability in the amount of data observed per account. These features should be interpreted as estimates of behavior rather than exact measurements.
+
+| Source | Description |
+|--------|-------------|
+| word_count | Estimated using spaces as delimiters, which can miscount due to punctuation, emojis, or URLs. Approximate error of ±1–2 words (~5–10%). |
+| has_url / has_hashtag / has_mention | Detected using simple text patterns (e.g., "http", "#", "@"), which can produce false positives or miss valid cases. Estimated error ~5%. |
+| Aggregated features (reply_rate, url_rate, etc.) | Based on a finite number of posts per account. Accounts with fewer posts have higher uncertainty (rates may vary significantly with small n). |
+| Sampling window | Data comes from a limited Firehose time window, so observed behavior may not reflect long-term activity. |
+
+
