@@ -1,3 +1,5 @@
 bluesky.duckdb
 *.log
 .venv
+__pycache__/
+*.parquet

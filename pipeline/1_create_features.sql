@@ -27,8 +27,6 @@ CREATE TABLE account_features AS
 SELECT
     did,
 
-    COUNT(*) AS total_posts,
-
     AVG(CASE WHEN is_reply THEN 1.0 ELSE 0.0 END) AS reply_rate,
 
     AVG(char_count) AS avg_post_length,

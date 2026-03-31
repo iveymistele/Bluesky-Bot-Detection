@@ -4,19 +4,13 @@
 **Executive Summary fix**
 This project uses short-term activity and content signals from real-time data streams from the Bluesky social media platform. 
 
-**Ivey Mistele**
-
-**zyh4up**
-
-**DOI to do**
-
-**Press Release:** [Link]
-
-**Data:** [Link](https://myuva-my.sharepoint.com/:f:/g/personal/zyh4up_virginia_edu/IgDohLMCAK-RRKmYPl1QViVRAel_N3mQHVozNomswaI5pbc?e=pCEpvf)
-
-**Pipeline:** [Link]
-
-License Name: Link
+Ivey Mistele\
+Computing ID: zyh4up\
+DOI to do\
+Press Release: [Link](https://github.com/iveymistele/Bluesky-Bot-Detection/blob/main/press_release.md)\
+Data: [Link](https://myuva-my.sharepoint.com/:f:/g/personal/zyh4up_virginia_edu/IgDohLMCAK-RRKmYPl1QViVRAel_N3mQHVozNomswaI5pbc?e=pCEpvf)\
+Pipeline: [Link](https://github.com/iveymistele/Bluesky-Bot-Detection/blob/main/pipeline/pipeline.ipynb)\
+MIT License: [Link](https://github.com/iveymistele/Bluesky-Bot-Detection/blob/main/LICENSE)
 
 ## Problem Definition
 
@@ -35,7 +29,7 @@ License Name: Link
 
  **Press Release: Kill the Bots in your Platform idk or for personal use report em**
 
-[Link to Press Release]()
+[Link to Press Release](https://github.com/iveymistele/Bluesky-Bot-Detection/blob/main/press_release.md)
 
 ## Domain Exposition 
 
@@ -53,7 +47,7 @@ License Name: Link
 |Mention Rate | Frequency of tagging other users in posts. |
 |Average Post Length| Average character length of posts for an account. |
 |Total Posts| Number of posts observed for an account during the collection window. |
-|Label | Binary classification (1 = likely bot, 0 = likely human, None = inconclusive). |
+|Label | Account classification (1 = likely bot, 0 = likely human, None = inconclusive). |
 |Cluster | Group assignment from unsupervised KMeans clustering. | 
 
 **Key Metrics (KPIs)**
@@ -86,4 +80,100 @@ This project falls within the broader domain of bot detection on social media. T
 
 **Provenance**
 
-I collected the raw data using the publically available Bluesky Firehose API. I wrote my own ingestion [script](Link To repo)
+I collected the raw data using the publicly available Bluesky Firehose API. I wrote my own ingestion [script](https://github.com/iveymistele/Bluesky-Bot-Detection/blob/main/jetstream.py) which connects to the API and ingests and parses raw JSON into two tables, `accounts` and `posts`, saved in both a DuckDB database for initial exploration and as parquet files. These two tables represent the core entities in the dataset, where `accounts` contains unique users and `posts` contains information about individual pieces of content. I then wrote two [SQL transformations](https://github.com/iveymistele/Bluesky-Bot-Detection/blob/main/pipeline/1_create_features.sql) to create two new tables, `account_features` and `post_features`, as new derived tables. The `post_features` table contains per-post attributes such as text length and presence of URLs/hashtags, and `account_features` contains information about aggregated behavior at the account level, such as reply rate. These tables are transformatd views of the underlying data. I used a python [script](https://github.com/iveymistele/Bluesky-Bot-Detection/blob/main/pipeline/write_parquet.py) to write these two new tables from the DuckDB database to parquet format. 
+
+**Code**
+
+|File Name|Description|Link|
+|---|---|---|
+|jetstream.py|Ingestion script for Bluesky Firehose API. Stores events in local DuckDB database file and as local parquet files.|https://github.com/iveymistele/Bluesky-Bot-Detection/blob/main/jetstream.py|
+|requirements.txt|Contains required python packages to run python scripts for data creation.|https://github.com/iveymistele/Bluesky-Bot-Detection/blob/main/requirements.txt|
+|write_parquet.py|Converts DuckDB database contents to parquet files.|https://github.com/iveymistele/Bluesky-Bot-Detection/blob/main/pipeline/write_parquet.py|
+|1_create_features.sql|SQL commands to create two new tables, account_features and post_features from root data.| https://github.com/iveymistele/Bluesky-Bot-Detection/blob/main/pipeline/1_create_features.sql |
+
+**Bias Identification**
+
+Bias may be introduced through both data collection and labeling. The data comes from a short Firehose collection window, so it may not fully represent all types of users or behaviors on Bluesky.
+
+A larger source of bias comes from the labeling process. Since there is no ground truth, I used heuristic thresholds (e.g., high activity and URL usage) to define bot-like accounts. This likely captures only the most obvious cases and may misclassify real users with similar behavior, such as organizations or highly active accounts.
+
+**Bias Mitigation**
+
+To reduce bias, I only labeled accounts with clearly extreme behavior and left others unlabeled to avoid introducing noise. I also removed features used in labeling from the model to prevent data leakage and force the model to learn from independent signals.
+
+I also evaluated performance using precision, recall, and F1 score rather than accuracy alone, and manually inspected example posts from predicted bot-like accounts to check that results were reasonable.
+
+**Rationale**
+
+Several parts of the data creation process required judgment calls around how to structure raw Bluesky data into usable features for analysis and modeling. 
+
+At the post level, I chose to engineer basic text and engagement features such as character count, word count, and indicators for URLs, hashtags, and mentions. These were selected because they are directly observable in the raw data and are commonly associated with automated behavior (e.g., bots often include links or repetitive tagging patterns). Rather than storing these as boolean values, I encoded features like `has_url`, `has_hashtag`, and `has_mention` as integer indicators (1/0). This decision was made to support future transformations and modeling workflows, since numeric representations are more flexible for aggregation (e.g., averaging to compute rates), scaling, and compatibility with machine learning models that expect numeric inputs.
+
+I also derived account-level features by aggregating post-level behavior, such as average post length, reply rate, and URL usage rate. This step reflects a shift from individual observations to behavioral summaries, which are more appropriate for identifying patterns across accounts. The aggregation design assumes that consistent behavioral tendencies (rather than single posts) are more indicative of automation.
+
+Another important decision was to separate the data into multiple tables (`posts`, `post_features`, and `account_features`) instead of creating a single flattened dataset. This structure improves modularity and reproducibility: raw data is preserved in its original form, while derived features are computed in a separate layer. It also makes it easier to adjust feature engineering choices without re-ingesting the raw data. The use of shared identifiers (such as `post_id`, `did`) ensures that relationships between tables are maintained and supports flexible joins for downstream analysis.
+
+There are also limitations introduced at this stage. The feature set is intentionally simple and does not capture deeper linguistic patterns, temporal dynamics, or network interactions, which may also be important for distinguishing bots from human users. Additionally, some feature calculations (such as word count based on spaces or URL detection via substring matching) are approximations and may introduce minor inaccuracies.
+
+Finally, the data creation process is dependent on a real-time Firehose ingestion pipeline, meaning the dataset reflects only a snapshot of activity within a limited time window. As a result, the constructed features may not fully represent long-term user behavior. These choices prioritize a clean, interpretable, and computationally efficient dataset, but they introduce tradeoffs in terms of completeness and precision that should be considered in downstream analysis.
+
+## Metadata 
+
+**ERD**
+
+**Data Table**
+
+| Table | Description | Link |
+|---|---|---|
+|account_features.parquet|Stores aggregated behavioral features at the account level, including posting frequency, reply rate, and content-based metrics used for modeling. |https://myuva-my.sharepoint.com/:u:/g/personal/zyh4up_virginia_edu/IQB0ufYXEbPXRK7aJnTgdN7kASjGbVgi00NV5lEwPX83BvI?e=wTh2Ra |
+|accounts.parquet| Stores account-level data, with one row per account (DID), including summary activity such as total posts and observed time range. |https://myuva-my.sharepoint.com/:u:/g/personal/zyh4up_virginia_edu/IQD5Zak-Ql0VSItU36WrpeUIAbxrlAw1LvsS5NNRMUPQ8Yc?e=zwMASa|
+|post_features.parquet|Stores derived features at the post level, such as text length, word count, and indicators for URLs, hashtags, and mentions. | https://myuva-my.sharepoint.com/:u:/g/personal/zyh4up_virginia_edu/IQCoIW7pEFPZTLrJcI2G5C39AQgeBd-rKViyQwAoJWA6Qgo?e=e4zOOh|
+|posts.parquet|Stores raw post-level data from the Bluesky Firehose, with one row per post including text, timestamps, and associated account IDs. |https://myuva-my.sharepoint.com/:u:/g/personal/zyh4up_virginia_edu/IQDcKjfEx_btQL3_dk4SEupBAQ2SRTg_41WI5kDmNCgu2K8?e=Iqd3EW |
+
+
+**Data Dictionary: `posts`**
+
+| Name        | Data Type | Description                                                                 | Example                                              |
+|------------|----------|-----------------------------------------------------------------------------|------------------------------------------------------|
+| id         | VARCHAR | Unique identifier for each post, constructed from DID, collection, and rkey (primary key). | at://did:plc:abc123/app.bsky.feed.post/xyz456        |
+| did        | VARCHAR | The decentralized identifier of the user who created the post (foreign key to accounts.did).             | did:plc:wauw7a45wzbbk663gjl7gy4m                     |
+| collection | VARCHAR | The type of content being streamed; all entries are posts.                 | app.bsky.feed.post                                   |
+| rkey       | VARCHAR | A unique record key for the post within the collection.                           | 3mhoxuofgls2w                                        |
+| text       | VARCHAR | The text content of the post (empty-text posts are filtered out).          | "hello world"                                          |
+| created_at | TIMESTAMP | Timestamp indicating when the post was created.                            | 2026-03-23T02:04:42.643Z                             |
+| raw_json   | VARCHAR | The full raw JSON event from the stream for reproducibility.               | {"did":"did:plc:...","commit":{...}}                 |
+|is_reply| BOOLEAN | Indicates whether the post is a reply to another post. | TRUE |
+
+**Data Dictionary: `accounts`**
+
+| Name        | Data Type | Description                                                                 | Example                                              |
+|------------|----------|-----------------------------------------------------------------------------|------------------------------------------------------|
+| did         | VARCHAR | Unique identifier for the account (primary key). | did:plc:abc123 |
+|first_seen_at| TIMESTAMP | Timestamp of the first observed post from this account. | 2026-03-30 12:00:00|
+|last_seen_at| TIMESTAMP| Timestamp of the most recent observed post from this account.| 2026-03-30 14:21:00|
+|post_count| BIGINT | Total number of posts observed for this account. | 57 |
+
+**Data Dictionary: `post_features`**
+
+| Name        | Data Type | Description                                                                 | Example                                              |
+|------------|----------|-----------------------------------------------------------------------------|------------------------------------------------------|
+| post_id         | VARCHAR | Unique identifier for the post (foreign key to posts.id). | at://did:plc:abc123/app.bsky.feed.post/xyz456 |
+|did| VARCHAR| Account identifier associated with the post (foreign key to accounts.did) | did:plc:abc123|
+|char_count| INTEGER| Number of characters in the post text.| 120|
+|word_count| INTEGER| Estimated number of words in the text post.| 20|
+|has_url|INTEGER| Indicator (1/0) for presence of a URL in the post.| 1|
+|has_hashtag| INTEGER| Indicator (1/0) for presence of hashtags. |0|
+|has_mention|INTEGER|Indicator (1/0) for presence of mentions (@). | 1|
+|is_reply| BOOLEAN| Indicates whether the post is a reply. |FALSE|
+
+**Data Dictionary: `account_features`**
+
+| Name        | Data Type | Description                                                                 | Example                                              |
+|------------|----------|-----------------------------------------------------------------------------|------------------------------------------------------|
+|did|VARCHAR|Account identifier (primary key). | did:plc:abc123|
+|reply_rate|DOUBLE|Proportion of posts that are replies.| 0.35|
+|avg_post_length|DOUBLE| Average character length of posts.|110.5|
+|avg_word_count|DOUBLE|Average number of words per post.| 18.2|
+|url_rate|DOUBLE|Proportion of posts containing URLs.|0.4|
+|hashtag_rate|DOUBLE|Proportion of posts containing hashtags.|0.1|
+|mention_rate|DOUBLE|Proportion of posts containing mentions.|0.25|
