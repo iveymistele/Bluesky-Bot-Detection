@@ -2,6 +2,11 @@ import duckdb
 from datetime import datetime
 
 def log(message):
+    """Print a timestamped status message to stdout.
+
+    Args:
+        message: Text to print.
+    """
     timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
     print(f"[{timestamp}] {message}")
 

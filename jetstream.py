@@ -9,6 +9,11 @@ uri = "wss://jetstream2.us-east.bsky.network/subscribe?wantedCollections=app.bsk
 log_file = open("ingestion.log", "a", encoding="utf-8")
 
 def log(message):
+    """Write a timestamped message to stdout and `ingestion.log`.
+
+    Args:
+        message: Text to log. Newlines are not added automatically beyond one line.
+    """
     timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
     line = f"[{timestamp}] {message}"
     print(line)
@@ -53,6 +58,17 @@ CREATE TABLE posts (
 
 
 def safe_parse_timestamp(ts):
+    """Parse a timestamp string into a `datetime`.
+
+    Returns `None` for missing/invalid values. Jetstream timestamps are commonly
+    in Zulu format (e.g., `...Z`), which is converted to a `+00:00` offset.
+
+    Args:
+        ts:  string
+
+    Returns:
+        A timezone-aware `datetime` when parseable, else `None`
+    """
     if not ts:
         return None
     try:
@@ -61,6 +77,11 @@ def safe_parse_timestamp(ts):
         return None
 
 async def listen_to_websocket():
+    """Continuously read Jetstream post commits and upsert into DuckDB.
+
+    Filters for `app.bsky.feed.post` commits, inserts new posts, and maintains a
+    per-account summary (first/last seen + post count).
+    """
     async with websockets.connect(uri, max_size=None) as websocket:
         log("Connected to Jetstream")
 
@@ -134,6 +155,7 @@ async def listen_to_websocket():
                 log(f"Error: {e}")
 
 def export_to_parquet():
+    """Export the `accounts` and `posts` DuckDB tables to Parquet files."""
     log("Exporting tables to Parquet...")
     conn.execute("COPY accounts TO 'accounts.parquet' (FORMAT PARQUET)")
     conn.execute("COPY posts TO 'posts.parquet' (FORMAT PARQUET)")

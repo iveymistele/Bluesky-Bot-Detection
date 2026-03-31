@@ -30,7 +30,7 @@ Bots make up a significant portion of internet traffic, and their presence on so
 
 [Link to Press Release](https://github.com/iveymistele/Bluesky-Bot-Detection/blob/main/press_release.md)
 
-#### Domain Exposition 
+## Domain Exposition 
 
 #### Terminology
 
