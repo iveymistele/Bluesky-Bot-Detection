@@ -1,0 +1,9 @@
+asyncio
+quixstreams
+websocket-client
+websockets
+duckdb
+pandas
+ipykernel
+scikit-learn
+matplotlib
