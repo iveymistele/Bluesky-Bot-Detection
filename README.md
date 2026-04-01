@@ -79,16 +79,16 @@ This project falls within the broader domain of bot detection on social media. T
 
 #### Provenance
 
-I collected the raw data using the publicly available Bluesky Firehose API. I wrote my own ingestion [script](https://github.com/iveymistele/Bluesky-Bot-Detection/blob/main/jetstream.py) which connects to the API and ingests and parses raw JSON into two tables, `accounts` and `posts`, saved in both a DuckDB database for initial exploration and as parquet files. These two tables represent the core entities in the dataset, where `accounts` contains unique users and `posts` contains information about individual pieces of content. I then wrote two [SQL transformations](https://github.com/iveymistele/Bluesky-Bot-Detection/blob/main/pipeline/1_create_features.sql) to create two new tables, `account_features` and `post_features`, as new derived tables. The `post_features` table contains per-post attributes such as text length and presence of URLs/hashtags, and `account_features` contains information about aggregated behavior at the account level, such as reply rate. These tables are transformatd views of the underlying data. I used a python [script](https://github.com/iveymistele/Bluesky-Bot-Detection/blob/main/pipeline/write_parquet.py) to write these two new tables from the DuckDB database to parquet format. 
+I collected the raw data using the publicly available Bluesky Firehose API. I wrote my own ingestion [script](https://github.com/iveymistele/Bluesky-Bot-Detection/blob/main/data-creation/jetstream.py) which connects to the API and ingests and parses raw JSON into two tables, `accounts` and `posts`, saved in both a DuckDB database for initial exploration and as parquet files. These two tables represent the core entities in the dataset, where `accounts` contains unique users and `posts` contains information about individual pieces of content. I then wrote two [SQL transformations](https://github.com/iveymistele/Bluesky-Bot-Detection/blob/main/pipeline/1_create_features.sql) to create two new tables, `account_features` and `post_features`, as new derived tables. The `post_features` table contains per-post attributes such as text length and presence of URLs/hashtags, and `account_features` contains information about aggregated behavior at the account level, such as reply rate. These tables are transformatd views of the underlying data. I used a python [script](https://github.com/iveymistele/Bluesky-Bot-Detection/blob/main/pipeline/write_parquet.py) to write these two new tables from the DuckDB database to parquet format. 
 
 #### Code
 
 |File Name|Description|Link|
 |---|---|---|
-|jetstream.py|Ingestion script for Bluesky Firehose API. Stores events in local DuckDB database file and as local parquet files.|https://github.com/iveymistele/Bluesky-Bot-Detection/blob/main/jetstream.py|
+|jetstream.py|Ingestion script for Bluesky Firehose API. Stores events in local DuckDB database file and as local parquet files.|https://github.com/iveymistele/Bluesky-Bot-Detection/blob/main/data-creation/jetstream.py|
 |requirements.txt|Contains required python packages to run python scripts for data creation.|https://github.com/iveymistele/Bluesky-Bot-Detection/blob/main/requirements.txt|
-|write_parquet.py|Converts DuckDB database contents to parquet files.|https://github.com/iveymistele/Bluesky-Bot-Detection/blob/main/pipeline/write_parquet.py|
-|1_create_features.sql|SQL commands to create two new tables, account_features and post_features from root data.| https://github.com/iveymistele/Bluesky-Bot-Detection/blob/main/pipeline/1_create_features.sql |
+|write_parquet.py|Converts DuckDB database contents to parquet files.|https://github.com/iveymistele/Bluesky-Bot-Detection/blob/main/data-creation/write_parquet.py|
+|1_create_features.sql|SQL commands to create two new tables, account_features and post_features from root data.|https://github.com/iveymistele/Bluesky-Bot-Detection/blob/main/data-creation/1_create_features.sql|
 
 #### Bias Identification
 
